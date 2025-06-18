@@ -5,7 +5,7 @@ color 0A
 :: Включаем расширение переменных
 setlocal enabledelayedexpansion
 
-:: Версия скрипта
+:: Устанавливаем локальную версию
 call :set_version
 
 :: Проверка обновлений
@@ -18,7 +18,7 @@ echo                ВАС ВІТАЄ SANCHEZ
 echo ==================================================
 timeout /t 2 >nul
 
-:: Запуск от администратора
+:: Проверка запуска от имени администратора
 net session >nul 2>&1
 if %errorlevel% neq 0 (
     echo ❌ Запустіть файл від імені адміністратора!
@@ -52,15 +52,31 @@ echo 8. Перевірка шкідливих процесів
 echo 9. Режим холодного видалення 💣
 echo 0. Вихід
 echo.
-set /p msel=Ваш вибір:
-exit /b
+set /p choice=Ваш вибір: 
 
+if "!choice!"=="1" goto browser_select
+if "!choice!"=="2" goto messenger_select
+if "!choice!"=="3" goto disable_all_startup
+if "!choice!"=="4" goto restore_menu
+if "!choice!"=="5" goto clear_quick_access
+if "!choice!"=="6" goto clear_activity_history
+if "!choice!"=="7" goto clear_temp_files
+if "!choice!"=="8" goto CheckThreats_Debug
+if "!choice!"=="9" goto total_wipe
+if "!choice!"=="0" exit
+
+echo ❌ Невірний вибір.
+pause
+goto main_menu
+
+:: Установить локальную версию
 :set_version
 set "VERSION=2.2"
 goto :eof
 
+:: Блок обновления
 :check_update
-set "REPO_BASE=https://github.com/sane4ekgs/clenup_sanchez/raw/refs/heads/main"
+set "REPO_BASE=https://raw.githubusercontent.com/sane4ekgs/clenup_sanhez/main"
 set "TMPV=%TEMP%\remote_version.txt"
 set "TMPB=%TEMP%\latest_clenup.bat"
 
@@ -68,7 +84,7 @@ echo ==================================================
 echo (ℹ️) Получаю версию с:
 echo      !REPO_BASE!/.version.txt
 echo --------------------------------------------------
-curl -s -L -o "!TMPV!" "https://github.com/sane4ekgs/clenup_sanchez/raw/refs/heads/main/.version.txt" >nul 2>&1
+curl -s -L -o "!TMPV!" "!REPO_BASE!/.version.txt" >nul 2>&1
 if exist "!TMPV!" (
     set /p REMOTE_VER=<"!TMPV!"
     del "!TMPV!"
@@ -88,7 +104,7 @@ echo 🆕 Доступна новая версія: !REMOTE_VER! (у тебя: !
 echo      Загружаю:
 echo      !REPO_BASE!/clenup.bat
 echo --------------------------------------------------
-curl -s -L -o "!TMPB!" "https://github.com/sane4ekgs/clenup_sanchez/raw/refs/heads/main/clenup.bat" >nul 2>&1
+curl -s -L -o "!TMPB!" "!REPO_BASE!/clenup.bat" >nul 2>&1
 if exist "!TMPB!" (
     echo 🔁 Заменяю текущий скрипт...
     copy /Y "!TMPB!" "%~f0" >nul
@@ -101,23 +117,6 @@ if exist "!TMPB!" (
     echo ❌ Ошибка при загрузке с !REPO_BASE!/clenup.bat
 )
 goto :eof
-
-
-
-if "!choice!"=="1" goto browser_select
-if "!choice!"=="2" goto messenger_select
-if "!choice!"=="3" goto disable_all_startup
-if "!choice!"=="4" goto restore_menu
-if "!choice!"=="5" goto clear_quick_access
-if "!choice!"=="6" goto clear_activity_history
-if "!choice!"=="7" goto clear_temp_files
-if "!choice!"=="8" goto CheckThreats_Debug
-if "!choice!"=="9" goto total_wipe
-if "!choice!"=="0" exit
-
-echo ❌ Невірний вибір.
-pause
-
 
 :clear_quick_access
 cls
