@@ -4,10 +4,15 @@ color 0A
 setlocal enabledelayedexpansion
 
 :: Устанавливаем локальную версию
-set "VERSION=2.2"
+set "VERSION=2.3"
 
 :: Проверка обновлений (в начале)
 call :check_update
+
+echo 🔍 Отримана версія: "!REMOTE_VER!"
+echo 🔍 Локальна версія: "!VERSION!"
+pause
+
 
 title Універсальне очищення ПК
 
@@ -74,7 +79,10 @@ echo ==================================================
 echo (ℹ️) Получаю версию с:
 echo      !REPO_BASE!/.version.txt
 echo --------------------------------------------------
-curl -s -L -o "!TMPV!" "!REPO_BASE!/.version.txt" >nul 2>&1
+echo 👉 Загружаю версию...
+curl -L -o "!TMPV!" "!REPO_BASE!/.version.txt"
+type "!TMPV!"
+pause
 if exist "!TMPV!" (
     set /p REMOTE_VER=<"!TMPV!"
     del "!TMPV!"
