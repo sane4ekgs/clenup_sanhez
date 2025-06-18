@@ -4,11 +4,11 @@ color 0A
 setlocal enabledelayedexpansion
 
 
+:: Пропуск повторного обновления
 if exist "%TEMP%\sanchez_updated.flag" (
     del "%TEMP%\sanchez_updated.flag"
     goto main_menu
 )
-
 
 
 
@@ -79,6 +79,7 @@ set "REPO_BASE=https://raw.githubusercontent.com/sane4ekgs/clenup_sanhez/main"
 set "TMPV=%TEMP%\version.txt"
 set "TMPB=%TEMP%\clenup.bat"
 
+:: Получаем удалённую версию
 curl -s -L -o "!TMPV!" "!REPO_BASE!/.version.txt"
 if exist "!TMPV!" (
     set /p REMOTE_VER=<"!TMPV!"
@@ -87,25 +88,34 @@ if exist "!TMPV!" (
     goto :eof
 )
 
+:: Если локальной версии нет
 if not defined VERSION set "VERSION=NONE"
 
+:: Если версия совпадает — ничего не делаем
 if /I "!REMOTE_VER!"=="!VERSION!" (
     goto :eof
 )
 
+:: Скачиваем новый BAT-файл
 curl -s -L -o "!TMPB!" "!REPO_BASE!/clenup.bat"
-if exist "!TMPB!" (
-    :: Устанавливаем флаг обновления
-    echo updated > "%TEMP%\sanchez_updated.flag"
+if not exist "!TMPB!" goto :eof
 
-    :: Копируем обновление поверх текущего скрипта
-    copy /Y "!TMPB!" "%~f0" >nul
+:: Создаём автообновляющий скрипт
+set "UPDATER=%TEMP%\run_update.bat"
+(
+    echo @echo off
+    echo timeout /t 1 >nul
+    echo copy /Y "!TMPB!" "%~f0" >nul
+    echo echo 🔄 Оновлення завершено.
+    echo start "" "%~f0"
+) > "!UPDATER!"
 
-    :: Перезапускаем скрипт
-    start "" "%~f0"
-    exit
-)
-goto :eof
+:: Флаг обновления
+echo updated > "%TEMP%\sanchez_updated.flag"
+
+:: Запуск обновлятора и выход
+start "" /min "!UPDATER!"
+exit /b
 
 
 
