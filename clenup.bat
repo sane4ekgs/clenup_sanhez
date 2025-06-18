@@ -1,4 +1,4 @@
-@echo off
+@echo on
 chcp 65001 >nul
 color 0A
 setlocal enabledelayedexpansion
@@ -73,6 +73,7 @@ goto main_menu
 set "REPO_BASE=https://raw.githubusercontent.com/sane4ekgs/clenup_sanhez/main"
 set "TMPV=%TEMP%\version.txt"
 set "TMPB=%TEMP%\clenup.bat"
+set "UPDLOG=%TEMP%\sanchez_updlog.txt"
 
 echo ==================================================
 echo (ℹ️) Отримую віддалену версію з:
@@ -88,10 +89,8 @@ if exist "!TMPV!" (
     goto :eof
 )
 
-:: Создаём .version.txt локально
 echo !REMOTE_VER!>"%~dp0version.txt"
 
-:: Сравнение версий (если VERSION ещё не определена — подставим временно)
 if not defined VERSION set "VERSION=NONE"
 
 if /I "!REMOTE_VER!"=="!VERSION!" (
@@ -103,19 +102,31 @@ echo 🆕 Доступна нова версія: !REMOTE_VER! (ваша: !VERSI
 echo      Завантаження:
 echo      !REPO_BASE!/clenup.bat
 echo --------------------------------------------------
+
 curl -s -L -o "!TMPB!" "!REPO_BASE!/clenup.bat"
 
 if exist "!TMPB!" (
     echo 🔁 Готую оновлення...
-
+    echo === SANCHEZ UPDATER LOG === >"!UPDLOG!"
+    echo TEMP BAT: !TMPB! >>"!UPDLOG!"
+    echo TARGET: %~f0 >>"!UPDLOG!"
+    echo START TIME: %DATE% %TIME% >>"!UPDLOG!"
+    
     set "UPDATER=%TEMP%\run_update.bat"
     (
         echo @echo off
-        echo timeout /t 1 >nul
-        echo copy /Y "!TMPB!" "%~f0" >nul
-        echo start "" "%~f0"
+        echo echo ▓▓▓ UPDATER START ▓▓▓ >>"!UPDLOG!"
+        echo echo Копирую в %%~f0... >>"!UPDLOG!"
+        echo copy /Y "!TMPB!" "%%~f0" ^>^>"!UPDLOG!" 2^>^&1
+        echo echo Запускаю новый %%~f0 >>"!UPDLOG!"
+        echo start "" "%%~f0"
+        echo echo 🟢 Завершено. >>"!UPDLOG!"
     ) > "!UPDATER!"
 
+    echo 🧪 Діагностичний оновлювач створено: !UPDATER!
+    echo 📄 Лог: !UPDLOG!
+    echo 🔁 Запуск оновлювача...
+    pause
     start "" /min "!UPDATER!"
     exit
 ) else (
@@ -123,6 +134,9 @@ if exist "!TMPB!" (
 )
 
 goto :eof
+
+
+
 :clear_quick_access
 cls
 echo ==== ОЧИСТКА ШВИДКОГО ДОСТУПУ ====
