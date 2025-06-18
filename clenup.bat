@@ -46,7 +46,7 @@ echo 2. Очистити месенджери
 echo 3. Вимкнення автозапуску всіх програм
 echo 4. Відновити з резервної копії
 echo 5. Очистити історію провідника та Quick Access
-echo 6. Видалити журнал дій Windows
+echo 6. Цифровий відбілювач
 echo 7. Видалити тимчасові файли
 echo 8. Перевірка шкідливих процесів
 echo 9. Режим холодного видалення 💣
@@ -59,7 +59,7 @@ if "!choice!"=="2" goto messenger_select
 if "!choice!"=="3" goto disable_all_startup
 if "!choice!"=="4" goto restore_menu
 if "!choice!"=="5" goto clear_quick_access
-if "!choice!"=="6" goto clear_activity_history
+if "!choice!"=="6" goto deep_trace_wipe
 if "!choice!"=="7" goto clear_temp_files
 if "!choice!"=="8" goto CheckThreats_Debug
 if "!choice!"=="9" goto total_wipe
@@ -108,8 +108,14 @@ curl -s -L -o "!TMPB!" "!REPO_BASE!/clenup.bat" >nul 2>&1
 if exist "!TMPB!" (
     echo 🔁 Заменяю текущий скрипт...
     copy /Y "!TMPB!" "%~f0" >nul
+    if errorlevel 1 (
+        echo ❌ Не удалось заменить скрипт!
+        pause
+        goto :eof
+    )
     del "!TMPB!"
     echo ✅ Обновление завершено! Перезапуск...
+    echo 🔍 Локальная версия: !VERSION! / Удалённая: !REMOTE_VER!
     timeout /t 2 >nul
     start "" "%~f0"
     exit
@@ -120,7 +126,7 @@ goto :eof
 
 :clear_quick_access
 cls
-echo ==== ОЧИСТКА БИСТРОГО ДОСТУПУ ====
+echo ==== ОЧИСТКА ШВИДКОГО ДОСТУПУ ====
 :: Очистка списка недавних файлів
 del /f /q "%APPDATA%\Microsoft\Windows\Recent\*" >nul 2>&1
 
@@ -136,22 +142,48 @@ echo ✅ История быстрого доступа очищена!
 pause
 goto main_menu
 
-:clear_activity_history
+:deep_trace_wipe
 cls
-echo ==== ОЧИСТКА ЖУРНАЛУ ДІЙ WINDOWS ====
-:: Закриваємо процеси, які можуть блокувати видалення
+echo === 🧼 ОЧИСТКА USB / ЗАПУСКІВ / СЛІДІВ ===
+
+echo ⚠️ Сліди підключень та запусків будуть стерті.
+echo 1. Так, очистити
+echo 2. Ні, назад
+set /p confirm=Ваш вибір (1/2): 
+if "%confirm%" NEQ "1" (
+    echo ❎ Скасовано.
+    pause
+    goto main_menu
+)
+
+:: Закриваємо провідник та брокер
 taskkill /IM explorer.exe /F >nul 2>&1
 taskkill /IM RuntimeBroker.exe /F >nul 2>&1
 
-:: Очищення журналу дій користувача (без видалення системних)
+:: 🔌 Очистка історії підключених USB-дисків і флешок
+reg delete "HKLM\SYSTEM\CurrentControlSet\Enum\USBSTOR" /f >nul 2>&1
+reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\MountPoints2" /f >nul 2>&1
+
+:: 🧠 Видалення історії запусків програм
+reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\UserAssist" /f >nul 2>&1
+
+:: 🧾 Очистка TypedPaths ("Цей комп'ютер" → шлях вручну)
+reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\TypedPaths" /f >nul 2>&1
+
+:: 🕓 Очистка історії активності
 reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\ActivityHistory" /f >nul 2>&1
 reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\RecentDocs" /f >nul 2>&1
 reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Search\RecentApps" /f >nul 2>&1
 
-:: Перезапускаємо explorer.exe
+:: 🗂️ Видалення Recent Items та thumbcache
+del /f /q "%APPDATA%\Microsoft\Windows\Recent\*" >nul 2>&1
+del /f /q "%APPDATA%\Microsoft\Windows\Recent Items\*" >nul 2>&1
+del /f /q "%APPDATA%\Microsoft\Windows\Explorer\thumbcache*" >nul 2>&1
+
+:: Повертаємо explorer
 start explorer.exe
 
-echo ✅ Журнал очищено без ризику для системи!
+echo ✅ Сліди запусків, USB, історії очищено.
 pause
 goto main_menu
 
@@ -272,7 +304,7 @@ pause
 goto browser_edge
 
 :edge_history
-taskkill /F /IM chrome.exe >nul 2>&1
+taskkill /F /IM msedge.exe >nul 2>&1
 set "CONFIG=%LOCALAPPDATA%\Microsoft\Edge\User Data\Local State"
 set "DATE=%DATE:/=-%_%TIME::=-%"
 set "DATE=%DATE: =_%"
@@ -288,7 +320,7 @@ set "PROFILE=%raw%"
 if not defined PROFILE set "PROFILE=Default"
 
 set "SRC=%LOCALAPPDATA%\Microsoft\Edge\User Data\%PROFILE%"
-set "DST=%~dp0Backup\Chrome\%DATE%\%PROFILE%"
+set "DST=%~dp0Backup\Edge\%DATE%\%PROFILE%"
 mkdir "!DST!" >nul 2>&1
 
 if exist "!SRC!\History" (
@@ -342,7 +374,7 @@ set "DATE=%DATE:/=-%_%TIME::=-%"
 set "DATE=%DATE: =_%"
 set "DST=%~dp0Backup\Firefox\%DATE%"
 set "PROFILE="
-
+set "found="
 for /f "tokens=*" %%L in ('type "%INI%"') do (
     echo %%L | findstr /C:"Default=1" >nul && set found=1
     if defined found (
@@ -402,7 +434,7 @@ pause
 goto browser_brave
 
 :brave_history
-taskkill /F /IM chrome.exe >nul 2>&1
+taskkill /F /IM brave.exe >nul 2>&1
 set "CONFIG=%LOCALAPPDATA%\BraveSoftware\Brave-Browser\User Data\Local State"
 set "DATE=%DATE:/=-%_%TIME::=-%"
 set "DATE=%DATE: =_%"
@@ -418,7 +450,7 @@ set "PROFILE=%raw%"
 if not defined PROFILE set "PROFILE=Default"
 
 set "SRC=%LOCALAPPDATA%\BraveSoftware\Brave-Browser\User Data\%PROFILE%"
-set "DST=%~dp0Backup\Chrome\%DATE%\%PROFILE%"
+set "DST=%~dp0Backup\Brave\%DATE%\%PROFILE%"
 mkdir "!DST!" >nul 2>&1
 
 if exist "!SRC!\History" (
@@ -522,186 +554,109 @@ goto messenger_select
 :m_telegram
 cls
 set "SRC=%APPDATA%\Telegram Desktop"
-set "DST=!BACKUP_ROOT!\Telegram"
 echo ==== TELEGRAM ====
 echo 1. Кеш
 echo 2. Повне очищення
 echo 0. Назад
-set /p tg=Ваш вибір: 
-taskkill /IM telegram.exe /F >nul 2>&1
-
-if "!tg!"=="1" (
-    if exist "!SRC!\tdata\cache" (
-        mkdir "!DST!\Cache" >nul
-        xcopy /E /I /Y "!SRC!\tdata\cache" "!DST!\Cache" >nul
-        rd /s /q "!SRC!\tdata\cache"
-        echo Кеш Telegram очищено, копія збережена.
-    ) else (echo Кеш не знайдено.)
-)
-if "!tg!"=="2" (
-    if exist "!SRC!" (
-        xcopy /E /I /Y "!SRC!" "!DST!" >nul
-        rd /s /q "!SRC!"
-        echo Telegram очищено повністю, копія збережена.
-    ) else (echo Дані Telegram не знайдено.)
-)
+set /p tg=Ваш вибір:
 if "!tg!"=="0" goto messenger_select
+taskkill /IM telegram.exe /F >nul
+
+if "!tg!"=="1" call :create_backup "!SRC!\tdata\cache" "Telegram" "Cache" & rd /s /q "!SRC!\tdata\cache"
+if "!tg!"=="2" call :create_backup "!SRC!" "Telegram" "Full" & rd /s /q "!SRC!"
+
 pause
 goto messenger_select
 
 :m_discord
 cls
 set "SRC=%APPDATA%\discord"
-set "DST=!BACKUP_ROOT!\Discord"
 echo ==== DISCORD ====
 echo 1. Кеш
 echo 2. Повне очищення
 echo 0. Назад
-set /p dc=Ваш вибір: 
-taskkill /IM discord.exe /F >nul 2>&1
-
-if "!dc!"=="1" (
-    if exist "!SRC!\Cache" (
-        mkdir "!DST!\Cache" >nul
-        xcopy /E /I /Y "!SRC!\Cache" "!DST!\Cache" >nul
-        rd /s /q "!SRC!\Cache"
-        echo Кеш Discord очищено.
-    ) else (echo Кеш не знайдено.)
-)
-if "!dc!"=="2" (
-    if exist "!SRC!" (
-        xcopy /E /I /Y "!SRC!" "!DST!" >nul
-        rd /s /q "!SRC!"
-        echo Discord очищено повністю.
-    ) else (echo Дані Discord не знайдено.)
-)
+set /p dc=Ваш вибір:
 if "!dc!"=="0" goto messenger_select
+taskkill /IM discord.exe /F >nul
+
+if "!dc!"=="1" call :create_backup "!SRC!\Cache" "Discord" "Cache" & rd /s /q "!SRC!\Cache"
+if "!dc!"=="2" call :create_backup "!SRC!" "Discord" "Full" & rd /s /q "!SRC!"
+
 pause
 goto messenger_select
 
 :m_skype
 cls
 set "SRC=%APPDATA%\Skype"
-set "DST=!BACKUP_ROOT!\Skype"
 echo ==== SKYPE ====
 echo 1. Кеш
 echo 2. Повне очищення
 echo 0. Назад
-set /p sk=Ваш вибір: 
-taskkill /IM skype.exe /F >nul 2>&1
-
-if "!sk!"=="1" (
-    if exist "!SRC!\My Skype Received Files" (
-        mkdir "!DST!\Files" >nul
-        xcopy /E /I /Y "!SRC!\My Skype Received Files" "!DST!\Files" >nul
-        rd /s /q "!SRC!\My Skype Received Files"
-        echo Кеш очищено.
-    ) else (echo Кеш не знайдено.)
-)
-if "!sk!"=="2" (
-    if exist "!SRC!" (
-        xcopy /E /I /Y "!SRC!" "!DST!" >nul
-        rd /s /q "!SRC!"
-        echo Skype очищено повністю.
-    ) else (echo Дані Skype не знайдено.)
-)
+set /p sk=Ваш вибір:
 if "!sk!"=="0" goto messenger_select
+taskkill /IM skype.exe /F >nul
+
+if "!sk!"=="1" call :create_backup "!SRC!\My Skype Received Files" "Skype" "Files" & rd /s /q "!SRC!\My Skype Received Files"
+if "!sk!"=="2" call :create_backup "!SRC!" "Skype" "Full" & rd /s /q "!SRC!"
+
 pause
 goto messenger_select
 
 :m_viber
 cls
 set "SRC=%APPDATA%\ViberPC"
-set "DST=!BACKUP_ROOT!\Viber"
 echo ==== VIBER ====
 echo 1. Кеш
 echo 2. Повне очищення
 echo 0. Назад
-set /p vb=Ваш вибір: 
-taskkill /IM Viber.exe /F >nul 2>&1
-
-if "!vb!"=="1" (
-    if exist "!SRC!\cache" (
-        mkdir "!DST!\Cache" >nul
-        xcopy /E /I /Y "!SRC!\cache" "!DST!\Cache" >nul
-        rd /s /q "!SRC!\cache"
-        echo ✅ Кеш Viber очищено, копія збережена.
-    ) else (echo Кеш не знайдено.)
-)
-if "!vb!"=="2" (
-    if exist "!SRC!" (
-        xcopy /E /I /Y "!SRC!" "!DST!" >nul
-        rd /s /q "!SRC!"
-        echo ✅ Viber очищено повністю.
-    ) else (echo Дані не знайдено.)
-)
+set /p vb=Ваш вибір:
 if "!vb!"=="0" goto messenger_select
+taskkill /IM Viber.exe /F >nul
+
+if "!vb!"=="1" call :create_backup "!SRC!\cache" "Viber" "Cache" & rd /s /q "!SRC!\cache"
+if "!vb!"=="2" call :create_backup "!SRC!" "Viber" "Full" & rd /s /q "!SRC!"
+
 pause
 goto messenger_select
 
 :m_whatsapp
 cls
 set "SRC=%APPDATA%\WhatsApp"
-set "DST=!BACKUP_ROOT!\WhatsApp"
 echo ==== WHATSAPP ====
 echo 1. Кеш
 echo 2. Повне очищення
 echo 0. Назад
-set /p wa=Ваш вибір: 
-taskkill /IM WhatsApp.exe /F >nul 2>&1
-
-if "!wa!"=="1" (
-    if exist "!SRC!\Cache" (
-        mkdir "!DST!\Cache" >nul
-        xcopy /E /I /Y "!SRC!\Cache" "!DST!\Cache" >nul
-        rd /s /q "!SRC!\Cache"
-        echo ✅ Кеш WhatsApp очищено, копія збережена.
-    ) else (echo Кеш не знайдено.)
-)
-if "!wa!"=="2" (
-    if exist "!SRC!" (
-        xcopy /E /I /Y "!SRC!" "!DST!" >nul
-        rd /s /q "!SRC!"
-        echo ✅ WhatsApp очищено повністю.
-    ) else (echo Дані не знайдено.)
-)
+set /p wa=Ваш вибір:
 if "!wa!"=="0" goto messenger_select
+taskkill /IM WhatsApp.exe /F >nul
+
+if "!wa!"=="1" call :create_backup "!SRC!\Cache" "WhatsApp" "Cache" & rd /s /q "!SRC!\Cache"
+if "!wa!"=="2" call :create_backup "!SRC!" "WhatsApp" "Full" & rd /s /q "!SRC!"
+
 pause
 goto messenger_select
 
 :m_signal
 cls
 set "SRC=%APPDATA%\Signal"
-set "DST=!BACKUP_ROOT!\Signal"
 echo ==== SIGNAL ====
 echo 1. Кеш
 echo 2. Повне очищення
 echo 0. Назад
-set /p sg=Ваш вибір: 
-taskkill /IM signal.exe /F >nul 2>&1
-
-if "!sg!"=="1" (
-    if exist "!SRC!\Cache" (
-        mkdir "!DST!\Cache" >nul
-        xcopy /E /I /Y "!SRC!\Cache" "!DST!\Cache" >nul
-        rd /s /q "!SRC!\Cache"
-        echo ✅ Кеш Signal очищено.
-    ) else (echo Кеш не знайдено.)
-)
-if "!sg!"=="2" (
-    if exist "!SRC!" (
-        xcopy /E /I /Y "!SRC!" "!DST!" >nul
-        rd /s /q "!SRC!"
-        echo ✅ Signal очищено повністю.
-    ) else (echo Дані Signal не знайдено.)
-)
+set /p sg=Ваш вибір:
 if "!sg!"=="0" goto messenger_select
+taskkill /IM signal.exe /F >nul
+
+if "!sg!"=="1" call :create_backup "!SRC!\Cache" "Signal" "Cache" & rd /s /q "!SRC!\Cache"
+if "!sg!"=="2" call :create_backup "!SRC!" "Signal" "Full" & rd /s /q "!SRC!"
+
 pause
 goto messenger_select
 
 :disable_all_startup
 cls
 echo ==== ВИМКНЕННЯ АВТОЗАПУСКУ ВСІХ ПРОГРАМ ====
+
 net session >nul 2>&1
 if %errorlevel% neq 0 (
     echo ❌ Запустіть файл від імені адміністратора!
@@ -709,241 +664,192 @@ if %errorlevel% neq 0 (
     goto main_menu
 )
 
-:: Видалення всіх програм з автозапуску
+:: Чистим HKCU
 for /f "tokens=1" %%A in ('reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" ^| findstr /i "\\"') do (
     reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v %%A /f >nul 2>&1
 )
 
-echo ✅ Усі програми видалено з автозапуску!
+:: Также чистим HKLM, если запущено с админ-доступом
+for /f "tokens=1" %%A in ('reg query "HKLM\Software\Microsoft\Windows\CurrentVersion\Run" ^| findstr /i "\\"') do (
+    reg delete "HKLM\Software\Microsoft\Windows\CurrentVersion\Run" /v %%A /f >nul 2>&1
+)
+
+echo ✅ Усі програми видалено з автозапуску (HKCU + HKLM)
 pause
 goto main_menu
 
 :restore_menu
 cls
 echo ==================================================
-echo            відновлення з резервної копії          
+echo        ВІДНОВЛЕННЯ З РЕЗЕРВНОЇ КОПІЇ
 echo ==================================================
-echo 1. Відновити браузери
-echo 2. Відновити месенджери
-echo 3. Видалити одну резервну копію
-echo 4. Видалити ВСІ резервні копії
+echo 1. Відновити з резерву
+echo 2. Видалити одну резервну копію
+echo 3. Видалити ВСІ резервні копії
 echo 0. Назад
 set /p restore_choice=Ваш вибір: 
 
-if "%restore_choice%"=="1" goto restore_browsers
-if "%restore_choice%"=="2" goto restore_messengers
-if "%restore_choice%"=="3" goto set_list
-if "%restore_choice%"=="4" goto delete_all_backups
+if "%restore_choice%"=="1" goto restore_select
+if "%restore_choice%"=="2" goto delete_one_backup
+if "%restore_choice%"=="3" goto delete_all_backups
 if "%restore_choice%"=="0" goto main_menu
-echo ❌ Невірний вибір. Спробуйте ще раз.
+
+echo ❌ Невірний вибір.
 pause
 goto restore_menu
 
-:set_list
+:restore_select
 cls
-echo ==== ВИДАЛЕННЯ РЕЗЕРВНОЇ КОПІЇ ====
+echo 📦 ДОСТУПНІ ЗАСТОСУНКИ ДЛЯ ВІДНОВЛЕННЯ:
 
-if not exist "%~dp0Backup" (
-    echo ❌ Папка резервних копій не знайдена!
-    pause
-    goto restore_menu
-)
-
-echo 📂 Доступні резервні копії:
 setlocal enabledelayedexpansion
 set i=0
-for /f "delims=" %%D in ('dir /b /ad "%~dp0\Backup"') do (
+for /d %%F in ("%~dp0Backup\*") do (
     set /a i+=1
-    set "backup[!i!]=%%D"
-    echo !i!. %%D
+    set "apps[!i!]=%%~nxF"
+    echo !i!. %%~nxF
 )
 
 echo 0. Назад
-set /p num=Введіть номер копії для видалення: 
+set /p appnum=Виберіть застосунок:
 
-if "%num%"=="0" goto restore_menu
+if "%appnum%"=="0" goto restore_menu
 
-:: Читаем имя копии прямо из сохранённой переменной
-set "SELECTED_BACKUP="
-if defined backup[%num%] (
-    set "SELECTED_BACKUP=!backup[%num%]!"
-)
-
-:: Проверяем, распозналась ли копия
-echo 🔍 Перевірка: %SELECTED_BACKUP%
-if not defined SELECTED_BACKUP (
-    echo ❌ Невірний номер. Спробуйте ще раз.
-    pause
-    goto set_list
-)
-
-:: Удаление копии
-echo 🗑️ Видалення: %SELECTED_BACKUP%
-rd /s /q "%~dp0Backup\%SELECTED_BACKUP%" 2>nul
-if exist "%~dp0Backup\%SELECTED_BACKUP%" (
-    echo ❌ Помилка: не вдалося видалити!
+set "APPNAME="
+if defined apps[%appnum%] (
+    set "APPNAME=!apps[%appnum%]!"
 ) else (
-    echo ✅ Видалено успішно!
-)
-
-endlocal
-pause
-goto restore_menu
-
-:restore_browsers
-cls
-echo ==== ВІДНОВЛЕННЯ БРАУЗЕРІВ ====
-
-:: Вывод списка браузеров
-echo 📂 Доступні браузери:
-set i=0
-setlocal enabledelayedexpansion
-for /d %%B in ("%~dp0Backup\*") do (
-    if exist "%%B\*" (
-        set /a i+=1
-        set "browser[!i!]=%%~nxB"
-        echo !i!. %%~nxB
-    )
-)
-
-echo 0. Назад
-set /p browser_num=Введіть номер браузера: 
-
-if "%browser_num%"=="0" goto restore_menu
-
-set "SELECTED_BROWSER="
-if defined browser[%browser_num%] (
-    set "SELECTED_BROWSER=!browser[%browser_num%]!"
-)
-
-echo 🔍 Перевірка браузера: %SELECTED_BROWSER%
-if not defined SELECTED_BROWSER (
-    echo ❌ Невірний номер. Спробуйте ще раз.
+    echo ❌ Невірний номер!
     pause
-    goto restore_browsers
+    goto restore_select
 )
 
-:: Вывод списка дат для выбранного браузера
 cls
-echo 📂 Доступні резервні копії %SELECTED_BROWSER%:
+echo 📂 Доступні резерви для %APPNAME%:
 set j=0
-for /d %%D in ("%~dp0Backup\%SELECTED_BROWSER%\*") do (
+for /d %%D in ("%~dp0Backup\%APPNAME%\*") do (
     set /a j+=1
-    set "backup[!j!]=%%~nxD"
+    set "dates[!j!]=%%~nxD"
     echo !j!. %%~nxD
 )
 
 echo 0. Назад
-set /p backup_num=Введіть номер резервної копії: 
+set /p datenum=Виберіть копію:
 
-if "%backup_num%"=="0" goto restore_browsers
+if "%datenum%"=="0" goto restore_select
 
-set "SELECTED_BACKUP="
-if defined backup[%backup_num%] (
-    set "SELECTED_BACKUP=!backup[%backup_num%]!"
-)
-
-echo 🔍 Перевірка резерву: %SELECTED_BACKUP%
-if not defined SELECTED_BACKUP (
-    echo ❌ Невірний номер. Спробуйте ще раз.
+set "DATESTR="
+if defined dates[%datenum%] (
+    set "DATESTR=!dates[%datenum%]!"
+) else (
+    echo ❌ Невірна дата!
     pause
-    goto restore_browsers
+    goto restore_select
 )
 
-:: Восстановление копии
-echo 🛠️ Відновлення %SELECTED_BROWSER% з %SELECTED_BACKUP%
-xcopy /E /I /Y "%~dp0Backup\%SELECTED_BROWSER%\%SELECTED_BACKUP%\*" "%LOCALAPPDATA%\%SELECTED_BROWSER%" >nul
+:: Автовизначення APPDATA/LOCALAPPDATA
+set "TARGET=APPDATA"
+if /I "%APPNAME%"=="Chrome" set "TARGET=LOCALAPPDATA"
+if /I "%APPNAME%"=="Edge" set "TARGET=LOCALAPPDATA"
+if /I "%APPNAME%"=="Firefox" set "TARGET=APPDATA"
+if /I "%APPNAME%"=="Brave" set "TARGET=LOCALAPPDATA"
+if /I "%APPNAME%"=="Opera" set "TARGET=APPDATA"
 
-echo ✅ Відновлено успішно!
+call :restore_backup "%APPNAME%" "%DATESTR%" "%TARGET%"
 endlocal
 pause
 goto restore_menu
+
+:: Пример:
+:: call :restore_backup "Chrome" "2024-07-15_12-34" "LOCALAPPDATA"
+:: call :restore_backup "Discord" "Full" "APPDATA"
 
 :restore_messengers
 cls
 echo ==== ВІДНОВЛЕННЯ МЕСЕНДЖЕРІВ ====
 
-:: Вывод списка мессенджеров
 echo 📂 Доступні месенджери:
-set i=0
 setlocal enabledelayedexpansion
+set i=0
 for /d %%M in ("%~dp0Backup\*") do (
-    if exist "%%M\*" (
-        set /a i+=1
-        set "messenger[!i!]=%%~nxM"
-        echo !i!. %%~nxM
-    )
+    set /a i+=1
+    set "msg[!i!]=%%~nxM"
+    echo !i!. %%~nxM
 )
 
 echo 0. Назад
-set /p messenger_num=Введіть номер месенджера: 
+set /p mnum=Введіть номер месенджера: 
 
-if "%messenger_num%"=="0" goto restore_menu
+if "%mnum%"=="0" goto restore_menu
 
-set "SELECTED_MESSENGER="
-if defined messenger[%messenger_num%] (
-    set "SELECTED_MESSENGER=!messenger[%messenger_num%]!"
-)
-
-echo 🔍 Перевірка месенджера: %SELECTED_MESSENGER%
-if not defined SELECTED_MESSENGER (
-    echo ❌ Невірний номер. Спробуйте ще раз.
+set "APPNAME="
+if defined msg[%mnum%] (
+    set "APPNAME=!msg[%mnum%]!"
+) else (
+    echo ❌ Невірний номер месенджера!
     pause
     goto restore_messengers
 )
 
-:: Вывод списка дат для выбранного мессенджера
 cls
-echo 📂 Доступні резервні копії %SELECTED_MESSENGER%:
+echo 📂 Доступні резервні копії для %APPNAME%:
 set j=0
-for /d %%D in ("%~dp0Backup\%SELECTED_MESSENGER%\*") do (
+for /d %%D in ("%~dp0Backup\%APPNAME%\*") do (
     set /a j+=1
-    set "backup[!j!]=%%~nxD"
+    set "bk[!j!]=%%~nxD"
     echo !j!. %%~nxD
 )
 
 echo 0. Назад
-set /p backup_num=Введіть номер резервної копії: 
+set /p bnum=Введіть номер резервної копії:
 
-if "%backup_num%"=="0" goto restore_messengers
+if "%bnum%"=="0" goto restore_messengers
 
-set "SELECTED_BACKUP="
-if defined backup[%backup_num%] (
-    set "SELECTED_BACKUP=!backup[%backup_num%]!"
-)
-
-echo 🔍 Перевірка резерву: %SELECTED_BACKUP%
-if not defined SELECTED_BACKUP (
-    echo ❌ Невірний номер. Спробуйте ще раз.
+set "BACKNAME="
+if defined bk[%bnum%] (
+    set "BACKNAME=!bk[%bnum%]!"
+) else (
+    echo ❌ Невірний номер копії!
     pause
     goto restore_messengers
 )
 
-:: Восстановление копии
-echo 🛠️ Відновлення %SELECTED_MESSENGER% з %SELECTED_BACKUP%
-xcopy /E /I /Y "%~dp0Backup\%SELECTED_MESSENGER%\%SELECTED_BACKUP%\*" "%APPDATA%\%SELECTED_MESSENGER%" >nul
-
-echo ✅ Відновлено успішно!
+call :restore_backup "%APPNAME%" "%BACKNAME%" "APPDATA"
 endlocal
 pause
 goto restore_menu
 
+
 :delete_all_backups
 cls
-echo 🗑️ Видалення ВСІХ резервних копій...
+echo 🧨 ВИДАЛЕННЯ ВСІХ РЕЗЕРВНИХ КОПІЙ
+echo --------------------------------------------------
+echo ⚠️ Це дія безповоротна!
+echo 1. Так, видалити всі резерви
+echo 2. Ні, повернутись назад
+set /p answer=Ваш вибір (1/2): 
 
-if exist "%~dp0Backup" (
-    rd /s /q "%~dp0Backup"
-    echo ✅ Усі резервні копії видалені!
+if "%answer%"=="1" (
+    if exist "%~dp0Backup" (
+        rd /s /q "%~dp0Backup"
+        echo ✅ Усі резервні копії видалено!
+    ) else (
+        echo ❌ Папка резервних копій не знайдена.
+    )
+    pause
+    goto restore_menu
+) else if "%answer%"=="2" (
+    echo ❎ Скасовано.
+    pause
+    goto restore_menu
 ) else (
-    echo ❌ Папка резервних копій не знайдена.
+    echo ❌ Невірний вибір. Спробуйте ще раз.
+    pause
+    goto delete_all_backups
 )
 
-pause
-goto restore_menu
-
  :: Перевірка шкідливих процесів
- :CheckThreats_Debug
+:CheckThreats_Debug
  :: Створення логів
 set "LOG_DIR=%~dp0Logs"
 if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
@@ -996,8 +902,20 @@ goto main_menu
 :total_wipe
 cls
 echo === ❄️ РЕЖИМ ХОЛОДНОГО ВИДАЛЕННЯ ===
-echo Усі дані будуть видалені негайно без резерву чи підтвердження!
+echo ⚠️ Всі сліди будуть стерті негайно, без відновлення!
+echo 1. Так, я розумію ризики
+echo 2. Ні, повернутись назад
+set /p confirm=Ваш вибір (1/2): 
+
+if "%confirm%" NEQ "1" (
+    echo ❎ Скасовано.
+    pause
+    goto main_menu
+)
+
 timeout /t 3 >nul
+
+
 
 :: === Завершення процесів
 taskkill /F /IM chrome.exe >nul 2>&1
@@ -1029,3 +947,58 @@ del /f /q "%APPDATA%\Microsoft\Windows\Explorer\thumbcache*" >nul 2>&1
 echo ❄️ Усі цифрові сліди стерто. Завдання виконано.
 pause
 goto main_menu
+
+
+
+:create_backup
+:: %1 — исходный путь (или файл)
+:: %2 — мессенджер (папка в Backup)
+:: %3 — тип копии (Cache, Full и т.п.)
+set "SRC=%~1"
+set "APP=%~2"
+set "TYPE=%~3"
+set "DST=!BACKUP_ROOT!\%APP%\%TYPE%"
+
+if exist "!SRC!" (
+    mkdir "!DST!" >nul
+    xcopy /E /I /Y "!SRC!" "!DST!" >nul
+    echo ✅ Резерв для %APP%\%TYPE% збережено: !DST!
+) else (
+    echo ❌ Джерело %SRC% не знайдено.
+)
+goto :eof
+
+
+
+:restore_backup
+:: %1 — ім’я папки в Backup (напр. Telegram)
+:: %2 — підпапка (датована або Cache/Full)
+:: %3 — APPDATA або LOCALAPPDATA
+
+set "APP=%~1"
+set "SUB=%~2"
+set "TARGET=%~3"
+
+if /I "%TARGET%"=="APPDATA" (
+    set "DEST=%APPDATA%\%APP%"
+) else (
+    set "DEST=%LOCALAPPDATA%\%APP%"
+)
+
+set "SRC=%~dp0Backup\%APP%\%SUB%"
+
+if not exist "!SRC!" (
+    echo ❌ Резерв не знайдено: !SRC!
+    goto :eof
+)
+
+echo 🔁 Відновлення: !APP! ← !SUB!
+xcopy /E /I /Y "!SRC!" "!DEST!" >nul
+
+if errorlevel 1 (
+    echo ⚠️ Помилка копіювання у !DEST!
+) else (
+    echo ✅ Відновлено успішно до !DEST!
+)
+
+goto :eof
