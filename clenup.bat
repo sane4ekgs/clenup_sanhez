@@ -1,22 +1,15 @@
 @echo off
 chcp 65001 >nul
 color 0A
-
-:: Включаем расширение переменных
 setlocal enabledelayedexpansion
 
 :: Устанавливаем локальную версию
-call :set_version
+set "VERSION=2.2"
 
-:: Проверка обновлений
+:: Проверка обновлений (в начале)
 call :check_update
 
 title Універсальне очищення ПК
-
-echo ==================================================
-echo                ВАС ВІТАЄ SANCHEZ                  
-echo ==================================================
-timeout /t 2 >nul
 
 :: Проверка запуска от имени администратора
 net session >nul 2>&1
@@ -69,16 +62,13 @@ echo ❌ Невірний вибір.
 pause
 goto main_menu
 
-:: Установить локальную версию
-:set_version
-set "VERSION=2.2"
-goto :eof
+
 
 :: Блок обновления
 :check_update
 set "REPO_BASE=https://raw.githubusercontent.com/sane4ekgs/clenup_sanhez/main"
-set "TMPV=%TEMP%\remote_version.txt"
-set "TMPB=%TEMP%\latest_clenup.bat"
+set "TMPV=%TEMP%\version.txt"
+set "TMPB=%TEMP%\clenup.bat"
 
 echo ==================================================
 echo (ℹ️) Получаю версию с:
