@@ -3,6 +3,15 @@ chcp 65001 >nul
 color 0A
 setlocal enabledelayedexpansion
 
+
+if exist "%TEMP%\sanchez_updated.flag" (
+    del "%TEMP%\sanchez_updated.flag"
+    goto main_menu
+)
+
+
+
+
 :: Проверка обновлений
 call :check_update
 
@@ -78,8 +87,6 @@ if exist "!TMPV!" (
     goto :eof
 )
 
-echo !REMOTE_VER! > "%~dp0version.txt"
-
 if not defined VERSION set "VERSION=NONE"
 
 if /I "!REMOTE_VER!"=="!VERSION!" (
@@ -88,14 +95,14 @@ if /I "!REMOTE_VER!"=="!VERSION!" (
 
 curl -s -L -o "!TMPB!" "!REPO_BASE!/clenup.bat"
 if exist "!TMPB!" (
-    set "UPDATER=%TEMP%\run_update.bat"
-    (
-        echo @echo off
-        echo timeout /t 1 >nul
-        echo copy /Y "!TMPB!" "%%~f0" >nul
-        echo start "" "%%~f0"
-    ) > "!UPDATER!"
-    start "" /min "!UPDATER!"
+    :: Устанавливаем флаг обновления
+    echo updated > "%TEMP%\sanchez_updated.flag"
+
+    :: Копируем обновление поверх текущего скрипта
+    copy /Y "!TMPB!" "%~f0" >nul
+
+    :: Перезапускаем скрипт
+    start "" "%~f0"
     exit
 )
 goto :eof
