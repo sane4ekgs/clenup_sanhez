@@ -4,7 +4,7 @@ color 0A
 setlocal enabledelayedexpansion
 
 :: Устанавливаем локальную версию
-set "VERSION=2.1"
+set "VERSION=2.2"
 
 :: Проверка обновлений (в начале)
 call :check_update
