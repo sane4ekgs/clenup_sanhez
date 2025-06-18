@@ -3,27 +3,22 @@ chcp 65001 >nul
 color 0A
 setlocal enabledelayedexpansion
 
-
-:: Пропуск повторного обновления
+:: === Пропуск повторного обновления ===
 if exist "%TEMP%\sanchez_updated.flag" (
     del "%TEMP%\sanchez_updated.flag"
     goto main_menu
 )
 
-
-
-:: Проверка обновлений
-call :check_update
-
-:: Устанавливаем версию из .version.txt (если есть)
+:: === Устанавливаем версию из version.txt ===
 set "VERSION=UNKNOWN"
 if exist "%~dp0version.txt" (
     set /p VERSION=<"%~dp0version.txt"
 )
 
-title Універсальне очищення ПК
+:: === Проверка обновлений ===
+call :check_update
 
-:: Проверка запуска от имени администратора
+:: === Проверка запуска от имени администратора ===
 net session >nul 2>&1
 if %errorlevel% neq 0 (
     echo ❌ Запустіть файл від імені адміністратора!
@@ -31,7 +26,7 @@ if %errorlevel% neq 0 (
     exit
 )
 
-:: Создание резервной папки
+:: === Создание резервной папки ===
 set "STAMP=%COMPUTERNAME%_%DATE:~6,4%-%DATE:~3,2%-%DATE:~0,2%_%TIME:~0,2%-%TIME:~6,2%"
 set "STAMP=%STAMP: =0%"
 set "BACKUP_ROOT=%~dp0Backup\%STAMP%"
@@ -73,49 +68,44 @@ echo ❌ Невірний вибір.
 pause
 goto main_menu
 
-:: Оновлення
+:: === Блок обновления ===
 :check_update
 set "REPO_BASE=https://raw.githubusercontent.com/sane4ekgs/clenup_sanhez/main"
 set "TMPV=%TEMP%\version.txt"
 set "TMPB=%TEMP%\clenup.bat"
 
-:: Получаем удалённую версию
+:: Получаем версию из репозитория
 curl -s -L -o "!TMPV!" "!REPO_BASE!/.version.txt"
-if exist "!TMPV!" (
-    set /p REMOTE_VER=<"!TMPV!"
-    del "!TMPV!"
-) else (
-    goto :eof
-)
+if not exist "!TMPV!" goto :eof
+set /p REMOTE_VER=<"!TMPV!"
+del "!TMPV!"
 
-:: Если локальной версии нет
+:: Сравнение версий
 if not defined VERSION set "VERSION=NONE"
+if /I "!REMOTE_VER!"=="!VERSION!" goto :eof
 
-:: Если версия совпадает — ничего не делаем
-if /I "!REMOTE_VER!"=="!VERSION!" (
-    goto :eof
-)
-
-:: Скачиваем новый BAT-файл
+:: Скачиваем новый скрипт
 curl -s -L -o "!TMPB!" "!REPO_BASE!/clenup.bat"
 if not exist "!TMPB!" goto :eof
 
-:: Создаём автообновляющий скрипт
+:: Создаём обновляющий bat-файл
 set "UPDATER=%TEMP%\run_update.bat"
 (
     echo @echo off
     echo timeout /t 1 >nul
     echo copy /Y "!TMPB!" "%~f0" >nul
     echo echo 🔄 Оновлення завершено.
+    echo del "%%~f0"
     echo start "" "%~f0"
 ) > "!UPDATER!"
 
-:: Флаг обновления
+:: Создаём флаг обновления
 echo updated > "%TEMP%\sanchez_updated.flag"
 
-:: Запуск обновлятора и выход
+:: Запускаем и выходим
 start "" /min "!UPDATER!"
 exit /b
+
 
 
 
