@@ -3,10 +3,10 @@ chcp 65001 >nul
 color 0A
 setlocal enabledelayedexpansion
 
-:: Оновлення
+:: Проверка обновлений
 call :check_update
 
-:: Читання версії з .version.txt
+:: Устанавливаем версию из .version.txt (если есть)
 set "VERSION=UNKNOWN"
 if exist "%~dp0version.txt" (
     set /p VERSION=<"%~dp0version.txt"
@@ -14,7 +14,7 @@ if exist "%~dp0version.txt" (
 
 title Універсальне очищення ПК
 
-:: Перевірка адміністратора
+:: Проверка запуска от имени администратора
 net session >nul 2>&1
 if %errorlevel% neq 0 (
     echo ❌ Запустіть файл від імені адміністратора!
@@ -22,22 +22,18 @@ if %errorlevel% neq 0 (
     exit
 )
 
-:: Резервна папка
+:: Создание резервной папки
 set "STAMP=%COMPUTERNAME%_%DATE:~6,4%-%DATE:~3,2%-%DATE:~0,2%_%TIME:~0,2%-%TIME:~6,2%"
 set "STAMP=%STAMP: =0%"
 set "BACKUP_ROOT=%~dp0Backup\%STAMP%"
 mkdir "!BACKUP_ROOT!" >nul 2>&1
 
-:: Меню
 :main_menu
 cls
 echo ==================================================
-echo      🌟 ВАС ВІТАЄ УНІВЕРСАЛЬНИЙ ПОМІЧНИК 🌟
-echo           >>>  SANCHEZ  v!VERSION!  <<<
-echo --------------------------------------------------
-echo 🔐 Користувач: %USERNAME%   💻 ПК: %COMPUTERNAME%
+echo         УНІВЕРСАЛЬНЕ ОЧИЩЕННЯ ПК [v!VERSION!]
+echo    Користувач: %USERNAME%   ПК: %COMPUTERNAME%
 echo ==================================================
-timeout /t 2 >nul
 echo.
 echo Виберіть дію:
 echo 1. Очистити браузери
@@ -70,47 +66,39 @@ goto main_menu
 
 :: Оновлення
 :check_update
-set "REPO=https://raw.githubusercontent.com/sane4ekgs/clenup_sanhez/main"
+set "REPO_BASE=https://raw.githubusercontent.com/sane4ekgs/clenup_sanhez/main"
 set "TMPV=%TEMP%\version.txt"
 set "TMPB=%TEMP%\clenup.bat"
-set "UPDLOG=%TEMP%\sanchez_updlog.txt"
 
-curl -s -L -o "!TMPV!" "!REPO!/.version.txt"
+curl -s -L -o "!TMPV!" "!REPO_BASE!/.version.txt"
 if exist "!TMPV!" (
     set /p REMOTE_VER=<"!TMPV!"
     del "!TMPV!"
 ) else (
-    echo ⚠️ Не вдалося отримати версію. Пропущено.
     goto :eof
 )
 
 echo !REMOTE_VER! > "%~dp0version.txt"
+
 if not defined VERSION set "VERSION=NONE"
 
 if /I "!REMOTE_VER!"=="!VERSION!" (
-    echo ✅ Скрипт актуальний (v!VERSION!)
     goto :eof
 )
 
-echo 🆕 Нова версія: !REMOTE_VER!
-curl -s -L -o "!TMPB!" "!REPO!/clenup.bat"
-if not exist "!TMPB!" (
-    echo ❌ Помилка при завантаженні скрипту.
-    goto :eof
+curl -s -L -o "!TMPB!" "!REPO_BASE!/clenup.bat"
+if exist "!TMPB!" (
+    set "UPDATER=%TEMP%\run_update.bat"
+    (
+        echo @echo off
+        echo timeout /t 1 >nul
+        echo copy /Y "!TMPB!" "%%~f0" >nul
+        echo start "" "%%~f0"
+    ) > "!UPDATER!"
+    start "" /min "!UPDATER!"
+    exit
 )
-
-echo 🔁 Готую оновлювач...
-set "UPDATER=%TEMP%\run_update.bat"
-(
-    echo @echo off
-    echo echo 🔧 Замінюю файл... >>"!UPDLOG!"
-    echo copy /Y "!TMPB!" "%%~f0" >>"!UPDLOG%" 2^^>^^&1
-    echo start "" "%%~f0"
-    echo echo 🔄 Перезапуск завершено. >>"!UPDLOG!"
-) > "!UPDATER!"
-
-start "" /min "!UPDATER!"
-exit
+goto :eof
 
 
 
