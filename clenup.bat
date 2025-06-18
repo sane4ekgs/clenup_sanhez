@@ -1,12 +1,12 @@
-@echo on
+@echo off
 chcp 65001 >nul
 color 0A
 setlocal enabledelayedexpansion
 
-:: Проверка обновлений
+:: Оновлення
 call :check_update
 
-:: Считываем локальную версию после возможного обновления
+:: Читання версії з .version.txt
 set "VERSION=UNKNOWN"
 if exist "%~dp0version.txt" (
     set /p VERSION=<"%~dp0version.txt"
@@ -14,7 +14,7 @@ if exist "%~dp0version.txt" (
 
 title Універсальне очищення ПК
 
-:: Проверка запуска от имени адміністратора
+:: Перевірка адміністратора
 net session >nul 2>&1
 if %errorlevel% neq 0 (
     echo ❌ Запустіть файл від імені адміністратора!
@@ -22,13 +22,13 @@ if %errorlevel% neq 0 (
     exit
 )
 
-:: Створення резервної папки
+:: Резервна папка
 set "STAMP=%COMPUTERNAME%_%DATE:~6,4%-%DATE:~3,2%-%DATE:~0,2%_%TIME:~0,2%-%TIME:~6,2%"
 set "STAMP=%STAMP: =0%"
 set "BACKUP_ROOT=%~dp0Backup\%STAMP%"
 mkdir "!BACKUP_ROOT!" >nul 2>&1
 
-:: Головне меню
+:: Меню
 :main_menu
 cls
 echo ==================================================
@@ -68,29 +68,23 @@ echo ❌ Невірний вибір.
 pause
 goto main_menu
 
-:: Блок обновления
+:: Оновлення
 :check_update
-set "REPO_BASE=https://raw.githubusercontent.com/sane4ekgs/clenup_sanhez/main"
+set "REPO=https://raw.githubusercontent.com/sane4ekgs/clenup_sanhez/main"
 set "TMPV=%TEMP%\version.txt"
 set "TMPB=%TEMP%\clenup.bat"
 set "UPDLOG=%TEMP%\sanchez_updlog.txt"
 
-echo ==================================================
-echo (ℹ️) Отримую віддалену версію з:
-echo      !REPO_BASE!/.version.txt
-echo --------------------------------------------------
-
-curl -s -L -o "!TMPV!" "!REPO_BASE!/.version.txt"
+curl -s -L -o "!TMPV!" "!REPO!/.version.txt"
 if exist "!TMPV!" (
     set /p REMOTE_VER=<"!TMPV!"
     del "!TMPV!"
 ) else (
-    echo ⚠️ Не вдалося отримати версію. Пропускаю оновлення.
+    echo ⚠️ Не вдалося отримати версію. Пропущено.
     goto :eof
 )
 
-echo !REMOTE_VER!>"%~dp0version.txt"
-
+echo !REMOTE_VER! > "%~dp0version.txt"
 if not defined VERSION set "VERSION=NONE"
 
 if /I "!REMOTE_VER!"=="!VERSION!" (
@@ -98,42 +92,25 @@ if /I "!REMOTE_VER!"=="!VERSION!" (
     goto :eof
 )
 
-echo 🆕 Доступна нова версія: !REMOTE_VER! (ваша: !VERSION!)
-echo      Завантаження:
-echo      !REPO_BASE!/clenup.bat
-echo --------------------------------------------------
-
-curl -s -L -o "!TMPB!" "!REPO_BASE!/clenup.bat"
-
-if exist "!TMPB!" (
-    echo 🔁 Готую оновлення...
-    echo === SANCHEZ UPDATER LOG === >"!UPDLOG!"
-    echo TEMP BAT: !TMPB! >>"!UPDLOG!"
-    echo TARGET: %~f0 >>"!UPDLOG!"
-    echo START TIME: %DATE% %TIME% >>"!UPDLOG!"
-    
-    set "UPDATER=%TEMP%\run_update.bat"
-    (
-        echo @echo off
-        echo echo ▓▓▓ UPDATER START ▓▓▓ >>"!UPDLOG!"
-        echo echo Копирую в %%~f0... >>"!UPDLOG!"
-        echo copy /Y "!TMPB!" "%%~f0" ^>^>"!UPDLOG!" 2^>^&1
-        echo echo Запускаю новый %%~f0 >>"!UPDLOG!"
-        echo start "" "%%~f0"
-        echo echo 🟢 Завершено. >>"!UPDLOG!"
-    ) > "!UPDATER!"
-
-    echo 🧪 Діагностичний оновлювач створено: !UPDATER!
-    echo 📄 Лог: !UPDLOG!
-    echo 🔁 Запуск оновлювача...
-    pause
-    start "" /min "!UPDATER!"
-    exit
-) else (
-    echo ❌ Помилка при завантаженні оновлення!
+echo 🆕 Нова версія: !REMOTE_VER!
+curl -s -L -o "!TMPB!" "!REPO!/clenup.bat"
+if not exist "!TMPB!" (
+    echo ❌ Помилка при завантаженні скрипту.
+    goto :eof
 )
 
-goto :eof
+echo 🔁 Готую оновлювач...
+set "UPDATER=%TEMP%\run_update.bat"
+(
+    echo @echo off
+    echo echo 🔧 Замінюю файл... >>"!UPDLOG!"
+    echo copy /Y "!TMPB!" "%%~f0" >>"!UPDLOG%" 2^^>^^&1
+    echo start "" "%%~f0"
+    echo echo 🔄 Перезапуск завершено. >>"!UPDLOG!"
+) > "!UPDATER!"
+
+start "" /min "!UPDATER!"
+exit
 
 
 
