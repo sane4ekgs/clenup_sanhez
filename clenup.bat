@@ -94,51 +94,60 @@ echo ==================================================
 echo (ℹ️) Получаю версию с:
 echo      !REPO_BASE!/.version.txt
 echo --------------------------------------------------
+echo 👉 Загружаю версию...
 
-:: Загружаем удалённую версию
-curl -s -L -o "!TMPV!" "!REPO_BASE!/.version.txt"
+:: Сохраняем локально и сразу обновляем .version.txt
+curl -s -L -o "%~dp0.version.txt" "https://raw.githubusercontent.com/sane4ekgs/clenup_sanhez/main/.version.txt"
+curl -L -o "!TMPV!" "!REPO_BASE!/.version.txt"
+
+type "!TMPV!"
+pause
+
 if exist "!TMPV!" (
     set /p REMOTE_VER=<"!TMPV!"
     del "!TMPV!"
-) else (
+)
+
+:: Если не удалось получить удалённую версию
+if not defined REMOTE_VER (
     echo ⚠️ Не удалось получить версию. Проверку пропущено.
     goto :eof
 )
 
-:: Загружаем её также в .version.txt (локально)
-echo !REMOTE_VER!>"%~dp0.version.txt"
-
-:: Сравниваем
+:: Если версия совпадает
 if /I "!REMOTE_VER!"=="!VERSION!" (
     echo ✅ Скрипт актуален (v!VERSION!)
     goto :eof
 )
 
+:: Если доступна новая версия
 echo 🆕 Доступна новая версія: !REMOTE_VER! (у тебя: !VERSION!)
-echo      Загружаю новый файл:
+echo      Загружаю:
 echo      !REPO_BASE!/clenup.bat
 echo --------------------------------------------------
-curl -s -L -o "!TMPB!" "!REPO_BASE!/clenup.bat"
+
+curl -s -L -o "!TMPB!" "!REPO_BASE!/clenup.bat" >nul 2>&1
 
 if exist "!TMPB!" (
-    echo 🔁 Готовлю замену...
-
-    :: Создаём мини-обновлятор
-    set "UPDATER=%TEMP%\run_update.bat"
-    (
-        echo @echo off
-        echo timeout /t 1 >nul
-        echo copy /Y "!TMPB!" "%~f0" >nul
-        echo start "" "%~f0"
-    ) > "!UPDATER!"
-
-    start "" /min "!UPDATER!"
+    echo 🔁 Заменяю текущий скрипт...
+    copy /Y "!TMPB!" "%~f0" >nul
+    if errorlevel 1 (
+        echo ❌ Не удалось заменить скрипт!
+        pause
+        goto :eof
+    )
+    del "!TMPB!"
+    echo ✅ Обновление завершено! Перезапуск...
+    echo 🔍 Локальная версия: !VERSION! / Удалённая: !REMOTE_VER!
+    timeout /t 2 >nul
+    start "" "%~f0"
     exit
 ) else (
-    echo ❌ Ошибка при загрузке обновления!
+    echo ❌ Ошибка при загрузке с !REPO_BASE!/clenup.bat
 )
 
 goto :eof
+
 
 
 
