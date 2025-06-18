@@ -3,22 +3,33 @@ chcp 65001 >nul
 color 0A
 setlocal enabledelayedexpansion
 
-:: === Пропуск повторного обновления ===
-if exist "%TEMP%\sanchez_updated.flag" (
-    del "%TEMP%\sanchez_updated.flag"
-    goto main_menu
+:: Устанавливаем локальную версию из файла
+set "VERFILE=%~dp0.version.txt"
+if exist "!VERFILE!" (
+    set /p VERSION=<"!VERFILE!"
+) else (
+    set "VERSION=UNKNOWN"
 )
 
-:: === Устанавливаем версию из version.txt ===
-set "VERSION=UNKNOWN"
-if exist "%~dp0version.txt" (
-    set /p VERSION=<"%~dp0version.txt"
-)
-
-:: === Проверка обновлений ===
+:: Проверка обновлений (в начале)
 call :check_update
 
-:: === Проверка запуска от имени администратора ===
+echo 🔍 Отримана версія: "!REMOTE_VER!"
+echo 🔍 Локальна версія: "!VERSION!"
+pause
+
+:: Повторно устанавливаем версию из .version.txt (если вдруг обновилось)
+set "VERFILE=%~dp0.version.txt"
+if exist "!VERFILE!" (
+    set /p VERSION=<"!VERFILE!"
+) else (
+    set "VERSION=UNKNOWN"
+)
+
+:: Заголовок окна
+title Універсальне очищення ПК
+
+:: Проверка запуска от имени администратора
 net session >nul 2>&1
 if %errorlevel% neq 0 (
     echo ❌ Запустіть файл від імені адміністратора!
@@ -26,11 +37,16 @@ if %errorlevel% neq 0 (
     exit
 )
 
-:: === Создание резервной папки ===
-set "STAMP=%COMPUTERNAME%_%DATE:~6,4%-%DATE:~3,2%-%DATE:~0,2%_%TIME:~0,2%-%TIME:~6,2%"
+:: Создание резервной папки
+set "STAMP=%COMPUTERNAME%%DATE:~6,4%-%DATE:~3,2%-%DATE:~0,2%%TIME:~0,2%-%TIME:~6,2%"
 set "STAMP=%STAMP: =0%"
-set "BACKUP_ROOT=%~dp0Backup\%STAMP%"
+set "BACKUP_ROOT=%~dp0Backup%STAMP%"
 mkdir "!BACKUP_ROOT!" >nul 2>&1
+
+:: Главное меню (пока заглушка)
+echo === Головне меню ===
+pause
+
 
 :main_menu
 cls
@@ -74,37 +90,55 @@ set "REPO_BASE=https://raw.githubusercontent.com/sane4ekgs/clenup_sanhez/main"
 set "TMPV=%TEMP%\version.txt"
 set "TMPB=%TEMP%\clenup.bat"
 
-:: Получаем версию из репозитория
+echo ==================================================
+echo (ℹ️) Получаю версию с:
+echo      !REPO_BASE!/.version.txt
+echo --------------------------------------------------
+
+:: Загружаем удалённую версию
 curl -s -L -o "!TMPV!" "!REPO_BASE!/.version.txt"
-if not exist "!TMPV!" goto :eof
-set /p REMOTE_VER=<"!TMPV!"
-del "!TMPV!"
+if exist "!TMPV!" (
+    set /p REMOTE_VER=<"!TMPV!"
+    del "!TMPV!"
+) else (
+    echo ⚠️ Не удалось получить версию. Проверку пропущено.
+    goto :eof
+)
 
-:: Сравнение версий
-if not defined VERSION set "VERSION=NONE"
-if /I "!REMOTE_VER!"=="!VERSION!" goto :eof
+:: Загружаем её также в .version.txt (локально)
+echo !REMOTE_VER!>"%~dp0.version.txt"
 
-:: Скачиваем новый скрипт
+:: Сравниваем
+if /I "!REMOTE_VER!"=="!VERSION!" (
+    echo ✅ Скрипт актуален (v!VERSION!)
+    goto :eof
+)
+
+echo 🆕 Доступна новая версія: !REMOTE_VER! (у тебя: !VERSION!)
+echo      Загружаю новый файл:
+echo      !REPO_BASE!/clenup.bat
+echo --------------------------------------------------
 curl -s -L -o "!TMPB!" "!REPO_BASE!/clenup.bat"
-if not exist "!TMPB!" goto :eof
 
-:: Создаём обновляющий bat-файл
-set "UPDATER=%TEMP%\run_update.bat"
-(
-    echo @echo off
-    echo timeout /t 1 >nul
-    echo copy /Y "!TMPB!" "%~f0" >nul
-    echo echo 🔄 Оновлення завершено.
-    echo del "%%~f0"
-    echo start "" "%~f0"
-) > "!UPDATER!"
+if exist "!TMPB!" (
+    echo 🔁 Готовлю замену...
 
-:: Создаём флаг обновления
-echo updated > "%TEMP%\sanchez_updated.flag"
+    :: Создаём мини-обновлятор
+    set "UPDATER=%TEMP%\run_update.bat"
+    (
+        echo @echo off
+        echo timeout /t 1 >nul
+        echo copy /Y "!TMPB!" "%~f0" >nul
+        echo start "" "%~f0"
+    ) > "!UPDATER!"
 
-:: Запускаем и выходим
-start "" /min "!UPDATER!"
-exit /b
+    start "" /min "!UPDATER!"
+    exit
+) else (
+    echo ❌ Ошибка при загрузке обновления!
+)
+
+goto :eof
 
 
 
