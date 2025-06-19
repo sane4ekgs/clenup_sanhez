@@ -3,27 +3,25 @@ chcp 65001 >nul
 color 0A
 setlocal enabledelayedexpansion
 
-
-
-:: Устанавливаем локальную версию из файла
-set "VERFILE=%~dp0version.txt"
-if exist "!VERFILE!" (
-    set /p VERSION=<"!VERFILE!"
-) else (
-    set "VERSION=UNKNOWN"
-)
-
-
 :: Пропуск повторного обновления после замены файла
 if exist "%TEMP%\sanchez_updated.flag" (
     del "%TEMP%\sanchez_updated.flag"
     goto main_menu
 )
 
+:: Устанавливаем локальную версию из файла
+set "VERFILE=%~dp0version.txt"
+if exist "%VERFILE%" (
+    set /p VERSION=<"%VERFILE%"
+) else (
+    set "VERSION=UNKNOWN"
+)
 
 
-:: --- Проверка обновления ---
-call :check_update >nul 2>&1
+echo Текуща версія: %VERSION%
+
+:: Вызываем обновление
+call :check_for_update >nul 2>&1
 
 ::echo 🔍 Отримана версія: "!REMOTE_VER!"
 ::echo 🔍 Локальна версія: "!VERSION!"
@@ -1100,52 +1098,49 @@ goto main_menu
 
 
 
-:: --- Блок проверки обновления ---
-:check_update
+:: ----------- ОБНОВЛЕНИЕ СКРИПТА -----------
+
+call :check_for_update
+goto main_menu
+
+:check_for_update
 setlocal
 
-set "REPO_BASE=https://raw.githubusercontent.com/sane4ekgs/clenup_sanhez/main"
-set "TMPV=%TEMP%\version.txt"
-set "TMPB=%TEMP%\clenup.bat"
+set "UPDATE_URL=https://raw.githubusercontent.com/sane4ekgs/clenup_sanhez/main/clenup.bat"
+set "LOCAL_FILE=%~dp0clenup.bat"
+set "TEMP_FILE=%TEMP%\clenup_new.bat"
 
-curl -s -L -o "%TMPV%" "%REPO_BASE%/.version.txt"
+echo Перевірка оновлень...
 
-if not exist "%TMPV%" (
-    endlocal
-    exit /b
-)
-
-set /p REMOTE_VER=<"%TMPV%"
-del "%TMPV%"
-
-if /I "!REMOTE_VER!"=="!VERSION!" (
-    endlocal
-    exit /b
-)
-
-echo 🆕 Доступна нова версія: !REMOTE_VER! (ваша: !VERSION!)
-echo Завантажую оновлення...
-
-curl -s -L -o "%TMPB%" "%REPO_BASE%/clenup.bat"
-if not exist "%TMPB%" (
-    echo ❌ Помилка завантаження оновлення!
-    endlocal
-    exit /b
-)
-
-echo 🔄 Замінюю скрипт...
-copy /Y "%TMPB%" "%~f0" >nul
+:: Скачиваем новый файл во временную папку
+powershell -Command "try {Invoke-WebRequest -Uri '%UPDATE_URL%' -OutFile '%TEMP_FILE%' -ErrorAction Stop} catch {exit 1}" >nul 2>&1
 if errorlevel 1 (
-    echo ❌ Не вдалося замінити скрипт!
-    del "%TMPB%"
+    echo ❌ Не вдалося завантажити оновлення.
     endlocal
     exit /b
 )
-del "%TMPB%"
 
-echo updated > "%TEMP%\sanchez_updated.flag"
+:: Сравним MD5 локального и скачанного файла, если есть, чтоб понять, нужно ли обновлять
+certutil -hashfile "%LOCAL_FILE%" MD5 >"%TEMP%\oldhash.txt"
+certutil -hashfile "%TEMP_FILE%" MD5 >"%TEMP%\newhash.txt"
 
-echo ✅ Оновлення завершено! Перезапускаю...
-timeout /t 2 >nul
-start "" "%~f0"
-exit /b
+set /p oldhash=<"%TEMP%\oldhash.txt"
+set /p newhash=<"%TEMP%\newhash.txt"
+
+:: Обрежем первые слова (CertUtil, MD5 hash и тд)
+for /f "tokens=2" %%A in ("%oldhash%") do set oldhash=%%A
+for /f "tokens=2" %%A in ("%newhash%") do set newhash=%%A
+
+if /i "%oldhash%"=="%newhash%" (
+    echo ✅ Оновлення не потрібне.
+    del "%TEMP_FILE%" >nul 2>&1
+    endlocal
+    exit /b
+) else (
+    echo 🔄 Застосування оновлення...
+    timeout /t 1 /nobreak >nul
+    move /y "%TEMP_FILE%" "%LOCAL_FILE%" >nul
+    echo ✅ Оновлення застосовано. Запустіть скрипт знову.
+    endlocal
+    exit /b
+)
