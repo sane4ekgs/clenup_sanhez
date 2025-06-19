@@ -18,7 +18,8 @@ if exist "!VERFILE!" (
 )
 
 :: Проверка обновлений (в начале)
-call :check_update
+call :check_update >nul 2>&1
+
 
 ::echo 🔍 Отримана версія: "!REMOTE_VER!"
 ::echo 🔍 Локальна версія: "!VERSION!"
@@ -1111,7 +1112,7 @@ curl -s -L -o "%~dp0version.txt" "https://raw.githubusercontent.com/sane4ekgs/cl
 curl -L -o "!TMPV!" "!REPO_BASE!/.version.txt"
 
 type "!TMPV!"
-pause
+::pause
 
 if exist "!TMPV!" (
     set /p REMOTE_VER=<"!TMPV!"
@@ -1140,7 +1141,7 @@ if exist "!TMPB!" (
     copy /Y "!TMPB!" "%~f0" >nul
     if errorlevel 1 (
         echo ❌ Не удалось заменить скрипт!
-        pause
+        ::pause
         goto :eof
     )
     del "!TMPB!"
