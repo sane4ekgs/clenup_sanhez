@@ -84,88 +84,17 @@ goto main_menu
 
 
 
-:: ----------- МЕНЮ БРАУЗЕРІВ -----------
-
-:browser_select
-cls
-echo ==================================================
-echo                 ВИБІР БРАУЗЕРА                     
-echo ==================================================
-echo 1. Google Chrome
-echo 2. Microsoft Edge
-echo 3. Mozilla Firefox
-echo 4. Opera
-echo 5. Brave
-echo 0. Назад
-set /p bchoice=Ваш вибір: 
-
-if "%bchoice%"=="1" goto browser_chrome
-if "%bchoice%"=="2" goto browser_edge
-if "%bchoice%"=="3" goto browser_firefox
-if "%bchoice%"=="4" goto browser_opera
-if "%bchoice%"=="5" goto browser_brave
-if "%bchoice%"=="0" goto main_menu
-
-echo ❌ Невірний вибір.
-pause
-goto browser_select
-
 :: ----------- Google Chrome -----------
 
-:browser_chrome
-cls
-echo ==== ОЧИСТКА GOOGLE CHROME ====
-echo 1. Видалити історію (усіх профілів)
-echo 2. Видалити всі дані
-echo 0. Назад
-set /p ch=Ваш вибір: 
-
-if "%ch%"=="1" goto chrome_history_all
-if "%ch%"=="2" goto chrome_full
-if "%ch%"=="0" goto browser_select
-
-echo ❌ Невірний вибір.
-pause
-goto browser_chrome
-
-:chrome_history_all
-echo 🗑️ Очищення історії Chrome (усі профілі)...
-taskkill /IM chrome.exe /F >nul 2>&1
-timeout /t 2 /nobreak >nul
-
-setlocal enabledelayedexpansion
-set "BASE_DIR=%LOCALAPPDATA%\Google\Chrome\User Data"
-set "BACKUP_BASE=%~dp0Backup\Chrome\History_%DATE:/=-%_%TIME::=-%"
-set "BACKUP_BASE=!BACKUP_BASE: =_!"
-mkdir "!BACKUP_BASE!" >nul 2>&1
-
-if not exist "!BASE_DIR!" (
-    echo ❌ Папка Chrome не знайдена: !BASE_DIR!
-    pause
-    endlocal
-    goto browser_chrome
-)
-
-for /d %%P in ("!BASE_DIR!\*") do (
-    set "PROFILE=%%~nxP"
-    if exist "%%P\History" (
-        echo 🔄 Копіюю історію профілю !PROFILE!...
-        mkdir "!BACKUP_BASE!\!PROFILE!" >nul 2>&1
-        copy /Y "%%P\History" "!BACKUP_BASE!\!PROFILE!\History.bak" >nul
-        attrib -h -s -r "%%P\History"
-        del /f /q "%%P\History"
-        echo ✅ Історія профілю !PROFILE! очищена.
-    ) else (
-        echo ⚠️ Історію профілю !PROFILE! не знайдено.
-    )
-)
-
-endlocal
-pause
-goto browser_chrome
-
 :chrome_full
+cls
 echo 🗑️ Повне очищення Chrome...
+echo Чи бажаєте зберегти резервну копію перед видаленням? (1 - Так, 2 - Ні)
+choice /c 12 /n
+if errorlevel 2 goto chrome_full_delete_nobackup
+if errorlevel 1 goto chrome_full_delete_withbackup
+
+:chrome_full_delete_withbackup
 taskkill /IM chrome.exe /F >nul 2>&1
 timeout /t 2 /nobreak >nul
 
@@ -178,7 +107,7 @@ if exist "!SRC!" (
     mkdir "!DST!" >nul 2>&1
     xcopy /E /I /Y "!SRC!" "!DST!" >nul
     rd /s /q "!SRC!"
-    echo ✅ Всі дані Chrome видалені!
+    echo ✅ Всі дані Chrome видалені з резервною копією!
 ) else (
     echo ❌ Дані Chrome не знайдено.
 )
@@ -187,62 +116,33 @@ endlocal
 pause
 goto browser_chrome
 
-:: ----------- Microsoft Edge -----------
-
-:browser_edge
-cls
-echo ==== ОЧИСТКА MICROSOFT EDGE ====
-echo 1. Видалити історію (усіх профілів)
-echo 2. Видалити всі дані
-echo 0. Назад
-set /p ed=Ваш вибір: 
-
-if "%ed%"=="1" goto edge_history_all
-if "%ed%"=="2" goto edge_full
-if "%ed%"=="0" goto browser_select
-
-echo ❌ Невірний вибір.
-pause
-goto browser_edge
-
-:edge_history_all
-echo 🗑️ Очищення історії Edge (усі профілі)...
-taskkill /IM msedge.exe /F >nul 2>&1
+:chrome_full_delete_nobackup
+taskkill /IM chrome.exe /F >nul 2>&1
 timeout /t 2 /nobreak >nul
 
-setlocal enabledelayedexpansion
-set "BASE_DIR=%LOCALAPPDATA%\Microsoft\Edge\User Data"
-set "BACKUP_BASE=%~dp0Backup\Edge\History_%DATE:/=-%_%TIME::=-%"
-set "BACKUP_BASE=!BACKUP_BASE: =_!"
-mkdir "!BACKUP_BASE!" >nul 2>&1
+set "SRC=%LOCALAPPDATA%\Google\Chrome\User Data"
 
-if not exist "!BASE_DIR!" (
-    echo ❌ Папка Edge не знайдена: !BASE_DIR!
-    pause
-    endlocal
-    goto browser_edge
+if exist "%SRC%" (
+    rd /s /q "%SRC%"
+    echo ✅ Всі дані Chrome видалені без резервної копії!
+) else (
+    echo ❌ Дані Chrome не знайдено.
 )
 
-for /d %%P in ("!BASE_DIR!\*") do (
-    set "PROFILE=%%~nxP"
-    if exist "%%P\History" (
-        echo 🔄 Копіюю історію профілю !PROFILE!...
-        mkdir "!BACKUP_BASE!\!PROFILE!" >nul 2>&1
-        copy /Y "%%P\History" "!BACKUP_BASE!\!PROFILE!\History.bak" >nul
-        attrib -h -s -r "%%P\History"
-        del /f /q "%%P\History"
-        echo ✅ Історія профілю !PROFILE! очищена.
-    ) else (
-        echo ⚠️ Історію профілю !PROFILE! не знайдено.
-    )
-)
-
-endlocal
 pause
-goto browser_edge
+goto browser_chrome
+
+:: ----------- Microsoft Edge -----------
 
 :edge_full
+cls
 echo 🗑️ Повне очищення Edge...
+echo Чи бажаєте зберегти резервну копію перед видаленням? (1 - Так, 2 - Ні)
+choice /c 12 /n
+if errorlevel 2 goto edge_full_delete_nobackup
+if errorlevel 1 goto edge_full_delete_withbackup
+
+:edge_full_delete_withbackup
 taskkill /IM msedge.exe /F >nul 2>&1
 timeout /t 2 /nobreak >nul
 
@@ -255,7 +155,7 @@ if exist "!SRC!" (
     mkdir "!DST!" >nul 2>&1
     xcopy /E /I /Y "!SRC!" "!DST!" >nul
     rd /s /q "!SRC!"
-    echo ✅ Всі дані Edge видалені!
+    echo ✅ Всі дані Edge видалені з резервною копією!
 ) else (
     echo ❌ Дані Edge не знайдено.
 )
@@ -264,62 +164,33 @@ endlocal
 pause
 goto browser_edge
 
-:: ----------- Mozilla Firefox -----------
-
-:browser_firefox
-cls
-echo ==== ОЧИСТКА MOZILLA FIREFOX ====
-echo 1. Видалити історію (усіх профілів)
-echo 2. Видалити всі дані
-echo 0. Назад
-set /p ff=Ваш вибір: 
-
-if "%ff%"=="1" goto firefox_history_all
-if "%ff%"=="2" goto firefox_full
-if "%ff%"=="0" goto browser_select
-
-echo ❌ Невірний вибір.
-pause
-goto browser_firefox
-
-:firefox_history_all
-echo 🗑️ Очищення історії Firefox (усі профілі)...
-taskkill /IM firefox.exe /F >nul 2>&1
+:edge_full_delete_nobackup
+taskkill /IM msedge.exe /F >nul 2>&1
 timeout /t 2 /nobreak >nul
 
-setlocal enabledelayedexpansion
-set "PROFILES_DIR=%APPDATA%\Mozilla\Firefox\Profiles"
-set "BACKUP_BASE=%~dp0Backup\Firefox\History_%DATE:/=-%_%TIME::=-%"
-set "BACKUP_BASE=!BACKUP_BASE: =_!"
-mkdir "!BACKUP_BASE!" >nul 2>&1
+set "SRC=%LOCALAPPDATA%\Microsoft\Edge\User Data"
 
-if not exist "!PROFILES_DIR!" (
-    echo ❌ Папка профілів Firefox не знайдена: !PROFILES_DIR!
-    pause
-    endlocal
-    goto browser_firefox
+if exist "%SRC%" (
+    rd /s /q "%SRC%"
+    echo ✅ Всі дані Edge видалені без резервної копії!
+) else (
+    echo ❌ Дані Edge не знайдено.
 )
 
-for /d %%P in ("!PROFILES_DIR!\*") do (
-    if exist "%%P\places.sqlite" (
-        set "PROFILE=%%~nxP"
-        echo 🔄 Копіюю історію профілю !PROFILE!...
-        mkdir "!BACKUP_BASE!\!PROFILE!" >nul 2>&1
-        copy /Y "%%P\places.sqlite" "!BACKUP_BASE!\!PROFILE!\places.sqlite.bak" >nul
-        attrib -h -s -r "%%P\places.sqlite"
-        del /f /q "%%P\places.sqlite"
-        echo ✅ Історія профілю !PROFILE! очищена.
-    ) else (
-        echo ⚠️ Історію профілю !PROFILE! не знайдено.
-    )
-)
-
-endlocal
 pause
-goto browser_firefox
+goto browser_edge
+
+:: ----------- Mozilla Firefox -----------
 
 :firefox_full
+cls
 echo 🗑️ Повне очищення Firefox...
+echo Чи бажаєте зберегти резервну копію перед видаленням? (1 - Так, 2 - Ні)
+choice /c 12 /n
+if errorlevel 2 goto firefox_full_delete_nobackup
+if errorlevel 1 goto firefox_full_delete_withbackup
+
+:firefox_full_delete_withbackup
 taskkill /IM firefox.exe /F >nul 2>&1
 timeout /t 2 /nobreak >nul
 
@@ -332,7 +203,7 @@ if exist "!SRC!" (
     mkdir "!DST!" >nul 2>&1
     xcopy /E /I /Y "!SRC!" "!DST!" >nul
     rd /s /q "!SRC!"
-    echo ✅ Всі дані Firefox видалені!
+    echo ✅ Всі дані Firefox видалені з резервною копією!
 ) else (
     echo ❌ Дані Firefox не знайдено.
 )
@@ -341,134 +212,33 @@ endlocal
 pause
 goto browser_firefox
 
-:: ----------- Brave -----------
-
-:browser_brave
-cls
-echo ==== ОЧИСТКА BRAVE BROWSER ====
-echo 1. Видалити історію (усіх профілів)
-echo 2. Видалити всі дані
-echo 0. Назад
-set /p br=Ваш вибір: 
-
-if "%br%"=="1" goto brave_history_all
-if "%br%"=="2" goto brave_full
-if "%br%"=="0" goto browser_select
-
-echo ❌ Невірний вибір.
-pause
-goto browser_brave
-
-:brave_history_all
-echo 🗑️ Очищення історії Brave (усі профілі)...
-taskkill /IM brave.exe /F >nul 2>&1
+:firefox_full_delete_nobackup
+taskkill /IM firefox.exe /F >nul 2>&1
 timeout /t 2 /nobreak >nul
 
-setlocal enabledelayedexpansion
-set "BASE_DIR=%LOCALAPPDATA%\BraveSoftware\Brave-Browser\User Data"
-set "BACKUP_BASE=%~dp0Backup\Brave\History_%DATE:/=-%_%TIME::=-%"
-set "BACKUP_BASE=!BACKUP_BASE: =_!"
-mkdir "!BACKUP_BASE!" >nul 2>&1
+set "SRC=%APPDATA%\Mozilla\Firefox"
 
-if not exist "!BASE_DIR!" (
-    echo ❌ Папка Brave не знайдена: !BASE_DIR!
-    pause
-    endlocal
-    goto browser_brave
-)
-
-for /d %%P in ("!BASE_DIR!\*") do (
-    set "PROFILE=%%~nxP"
-    if exist "%%P\History" (
-        echo 🔄 Копіюю історію профілю !PROFILE!...
-        mkdir "!BACKUP_BASE!\!PROFILE!" >nul 2>&1
-        copy /Y "%%P\History" "!BACKUP_BASE!\!PROFILE!\History.bak" >nul
-        attrib -h -s -r "%%P\History"
-        del /f /q "%%P\History"
-        echo ✅ Історія профілю !PROFILE! очищена.
-    ) else (
-        echo ⚠️ Історію профілю !PROFILE! не знайдено.
-    )
-)
-
-endlocal
-pause
-goto browser_brave
-
-:brave_full
-echo 🗑️ Повне очищення Brave...
-taskkill /IM brave.exe /F >nul 2>&1
-timeout /t 2 /nobreak >nul
-
-setlocal enabledelayedexpansion
-set "SRC=%LOCALAPPDATA%\BraveSoftware\Brave-Browser"
-set "DST=%~dp0Backup\Brave\Full_%DATE:/=-%_%TIME::=-%"
-set "DST=!DST: =_!"
-
-if exist "!SRC!" (
-    mkdir "!DST!" >nul 2>&1
-    xcopy /E /I /Y "!SRC!" "!DST!" >nul
-    rd /s /q "!SRC!"
-    echo ✅ Всі дані Brave видалені!
+if exist "%SRC%" (
+    rd /s /q "%SRC%"
+    echo ✅ Всі дані Firefox видалені без резервної копії!
 ) else (
-    echo ❌ Дані Brave не знайдено.
+    echo ❌ Дані Firefox не знайдено.
 )
 
-endlocal
 pause
-goto browser_brave
+goto browser_firefox
 
 :: ----------- Opera -----------
 
-:browser_opera
-cls
-echo ==== ОЧИСТКА OPERA ====
-echo 1. Видалити історію
-echo 2. Видалити всі дані
-echo 0. Назад
-set /p op=Ваш вибір: 
-
-if "%op%"=="1" goto opera_history_all
-if "%op%"=="2" goto opera_full
-if "%op%"=="0" goto browser_select
-
-echo ❌ Невірний вибір.
-pause
-goto browser_opera
-
-:opera_history_all
-echo 🗑️ Очищення історії Opera...
-taskkill /IM opera.exe /F >nul 2>&1
-timeout /t 2 /nobreak >nul
-
-setlocal enabledelayedexpansion
-set "PROFILE_DIR=%APPDATA%\Opera Software\Opera Stable"
-set "BACKUP_BASE=%~dp0Backup\Opera\History_%DATE:/=-%_%TIME::=-%"
-set "BACKUP_BASE=!BACKUP_BASE: =_!"
-mkdir "!BACKUP_BASE!" >nul 2>&1
-
-if not exist "!PROFILE_DIR!" (
-    echo ❌ Папка Opera не знайдена: !PROFILE_DIR!
-    pause
-    endlocal
-    goto browser_opera
-)
-
-if exist "!PROFILE_DIR!\History" (
-    copy /Y "!PROFILE_DIR!\History" "!BACKUP_BASE!\History.bak" >nul
-    attrib -h -s -r "!PROFILE_DIR!\History"
-    del /f /q "!PROFILE_DIR!\History"
-    echo ✅ Історія Opera очищена.
-) else (
-    echo ❌ Історію Opera не знайдено.
-)
-
-endlocal
-pause
-goto browser_opera
-
 :opera_full
+cls
 echo 🗑️ Повне очищення Opera...
+echo Чи бажаєте зберегти резервну копію перед видаленням? (1 - Так, 2 - Ні)
+choice /c 12 /n
+if errorlevel 2 goto opera_full_delete_nobackup
+if errorlevel 1 goto opera_full_delete_withbackup
+
+:opera_full_delete_withbackup
 taskkill /IM opera.exe /F >nul 2>&1
 timeout /t 2 /nobreak >nul
 
@@ -481,7 +251,7 @@ if exist "!SRC!" (
     mkdir "!DST!" >nul 2>&1
     xcopy /E /I /Y "!SRC!" "!DST!" >nul
     rd /s /q "!SRC!"
-    echo ✅ Всі дані Opera видалені!
+    echo ✅ Всі дані Opera видалені з резервною копією!
 ) else (
     echo ❌ Дані Opera не знайдено.
 )
@@ -489,6 +259,71 @@ if exist "!SRC!" (
 endlocal
 pause
 goto browser_opera
+
+:opera_full_delete_nobackup
+taskkill /IM opera.exe /F >nul 2>&1
+timeout /t 2 /nobreak >nul
+
+set "SRC=%APPDATA%\Opera Software"
+
+if exist "%SRC%" (
+    rd /s /q "%SRC%"
+    echo ✅ Всі дані Opera видалені без резервної копії!
+) else (
+    echo ❌ Дані Opera не знайдено.
+)
+
+pause
+goto browser_opera
+
+:: ----------- Brave -----------
+
+:brave_full
+cls
+echo 🗑️ Повне очищення Brave...
+echo Чи бажаєте зберегти резервну копію перед видаленням? (1 - Так, 2 - Ні)
+choice /c 12 /n
+if errorlevel 2 goto brave_full_delete_nobackup
+if errorlevel 1 goto brave_full_delete_withbackup
+
+:brave_full_delete_withbackup
+taskkill /IM brave.exe /F >nul 2>&1
+timeout /t 2 /nobreak >nul
+
+setlocal enabledelayedexpansion
+set "SRC=%LOCALAPPDATA%\BraveSoftware\Brave-Browser"
+set "DST=%~dp0Backup\Brave\Full_%DATE:/=-%_%TIME::=-%"
+set "DST=!DST: =_!"
+
+if exist "!SRC!" (
+    mkdir "!DST!" >nul 2>&1
+    xcopy /E /I /Y "!SRC!" "!DST!" >nul
+    rd /s /q "!SRC!"
+    echo ✅ Всі дані Brave видалені з резервною копією!
+) else (
+    echo ❌ Дані Brave не знайдено.
+)
+
+endlocal
+pause
+goto browser_brave
+
+:brave_full_delete_nobackup
+taskkill /IM brave.exe /F >nul 2>&1
+timeout /t 2 /nobreak >nul
+
+set "SRC=%LOCALAPPDATA%\BraveSoftware\Brave-Browser"
+
+if exist "%SRC%" (
+    rd /s /q "%SRC%"
+    echo ✅ Всі дані Brave видалені без резервної копії!
+) else (
+    echo ❌ Дані Brave не знайдено.
+)
+
+pause
+goto browser_brave
+
 
 
 
