@@ -82,7 +82,8 @@ echo ❌ Невірний вибір.
 pause
 goto main_menu
 
-
+:: ВИБІР БРАУЗЕРІВ
+:browser_select
 
 :: ----------- Google Chrome -----------
 
