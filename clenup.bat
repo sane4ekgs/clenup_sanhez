@@ -167,7 +167,14 @@ pause
 goto browser_chrome
 
 :chrome_full
+cls
 echo 🗑️ Повне очищення Chrome...
+echo Чи бажаєте зберегти резервну копію перед видаленням? (1 - Так, 2 - Ні)
+choice /c 12 /n
+if errorlevel 2 goto chrome_full_delete_nobackup
+if errorlevel 1 goto chrome_full_delete_withbackup
+
+:chrome_full_delete_withbackup
 taskkill /IM chrome.exe /F >nul 2>&1
 timeout /t 2 /nobreak >nul
 
@@ -180,12 +187,28 @@ if exist "!SRC!" (
     mkdir "!DST!" >nul 2>&1
     xcopy /E /I /Y "!SRC!" "!DST!" >nul
     rd /s /q "!SRC!"
-    echo ✅ Всі дані Chrome видалені!
+    echo ✅ Всі дані Chrome видалені з резервною копією!
 ) else (
     echo ❌ Дані Chrome не знайдено.
 )
 
 endlocal
+pause
+goto browser_chrome
+
+:chrome_full_delete_nobackup
+taskkill /IM chrome.exe /F >nul 2>&1
+timeout /t 2 /nobreak >nul
+
+set "SRC=%LOCALAPPDATA%\Google\Chrome\User Data"
+
+if exist "%SRC%" (
+    rd /s /q "%SRC%"
+    echo ✅ Всі дані Chrome видалені без резервної копії!
+) else (
+    echo ❌ Дані Chrome не знайдено.
+)
+
 pause
 goto browser_chrome
 
@@ -244,7 +267,14 @@ pause
 goto browser_edge
 
 :edge_full
+cls
 echo 🗑️ Повне очищення Edge...
+echo Чи бажаєте зберегти резервну копію перед видаленням? (1 - Так, 2 - Ні)
+choice /c 12 /n
+if errorlevel 2 goto edge_full_delete_nobackup
+if errorlevel 1 goto edge_full_delete_withbackup
+
+:edge_full_delete_withbackup
 taskkill /IM msedge.exe /F >nul 2>&1
 timeout /t 2 /nobreak >nul
 
@@ -257,12 +287,28 @@ if exist "!SRC!" (
     mkdir "!DST!" >nul 2>&1
     xcopy /E /I /Y "!SRC!" "!DST!" >nul
     rd /s /q "!SRC!"
-    echo ✅ Всі дані Edge видалені!
+    echo ✅ Всі дані Edge видалені з резервною копією!
 ) else (
     echo ❌ Дані Edge не знайдено.
 )
 
 endlocal
+pause
+goto browser_edge
+
+:edge_full_delete_nobackup
+taskkill /IM msedge.exe /F >nul 2>&1
+timeout /t 2 /nobreak >nul
+
+set "SRC=%LOCALAPPDATA%\Microsoft\Edge\User Data"
+
+if exist "%SRC%" (
+    rd /s /q "%SRC%"
+    echo ✅ Всі дані Edge видалені без резервної копії!
+) else (
+    echo ❌ Дані Edge не знайдено.
+)
+
 pause
 goto browser_edge
 
@@ -321,7 +367,14 @@ pause
 goto browser_firefox
 
 :firefox_full
+cls
 echo 🗑️ Повне очищення Firefox...
+echo Чи бажаєте зберегти резервну копію перед видаленням? (1 - Так, 2 - Ні)
+choice /c 12 /n
+if errorlevel 2 goto firefox_full_delete_nobackup
+if errorlevel 1 goto firefox_full_delete_withbackup
+
+:firefox_full_delete_withbackup
 taskkill /IM firefox.exe /F >nul 2>&1
 timeout /t 2 /nobreak >nul
 
@@ -334,12 +387,28 @@ if exist "!SRC!" (
     mkdir "!DST!" >nul 2>&1
     xcopy /E /I /Y "!SRC!" "!DST!" >nul
     rd /s /q "!SRC!"
-    echo ✅ Всі дані Firefox видалені!
+    echo ✅ Всі дані Firefox видалені з резервною копією!
 ) else (
     echo ❌ Дані Firefox не знайдено.
 )
 
 endlocal
+pause
+goto browser_firefox
+
+:firefox_full_delete_nobackup
+taskkill /IM firefox.exe /F >nul 2>&1
+timeout /t 2 /nobreak >nul
+
+set "SRC=%APPDATA%\Mozilla\Firefox"
+
+if exist "%SRC%" (
+    rd /s /q "%SRC%"
+    echo ✅ Всі дані Firefox видалені без резервної копії!
+) else (
+    echo ❌ Дані Firefox не знайдено.
+)
+
 pause
 goto browser_firefox
 
@@ -398,7 +467,14 @@ pause
 goto browser_brave
 
 :brave_full
+cls
 echo 🗑️ Повне очищення Brave...
+echo Чи бажаєте зберегти резервну копію перед видаленням? (1 - Так, 2 - Ні)
+choice /c 12 /n
+if errorlevel 2 goto brave_full_delete_nobackup
+if errorlevel 1 goto brave_full_delete_withbackup
+
+:brave_full_delete_withbackup
 taskkill /IM brave.exe /F >nul 2>&1
 timeout /t 2 /nobreak >nul
 
@@ -411,12 +487,28 @@ if exist "!SRC!" (
     mkdir "!DST!" >nul 2>&1
     xcopy /E /I /Y "!SRC!" "!DST!" >nul
     rd /s /q "!SRC!"
-    echo ✅ Всі дані Brave видалені!
+    echo ✅ Всі дані Brave видалені з резервною копією!
 ) else (
     echo ❌ Дані Brave не знайдено.
 )
 
 endlocal
+pause
+goto browser_brave
+
+:brave_full_delete_nobackup
+taskkill /IM brave.exe /F >nul 2>&1
+timeout /t 2 /nobreak >nul
+
+set "SRC=%LOCALAPPDATA%\BraveSoftware\Brave-Browser"
+
+if exist "%SRC%" (
+    rd /s /q "%SRC%"
+    echo ✅ Всі дані Brave видалені без резервної копії!
+) else (
+    echo ❌ Дані Brave не знайдено.
+)
+
 pause
 goto browser_brave
 
@@ -470,7 +562,14 @@ pause
 goto browser_opera
 
 :opera_full
+cls
 echo 🗑️ Повне очищення Opera...
+echo Чи бажаєте зберегти резервну копію перед видаленням? (1 - Так, 2 - Ні)
+choice /c 12 /n
+if errorlevel 2 goto opera_full_delete_nobackup
+if errorlevel 1 goto opera_full_delete_withbackup
+
+:opera_full_delete_withbackup
 taskkill /IM opera.exe /F >nul 2>&1
 timeout /t 2 /nobreak >nul
 
@@ -483,12 +582,28 @@ if exist "!SRC!" (
     mkdir "!DST!" >nul 2>&1
     xcopy /E /I /Y "!SRC!" "!DST!" >nul
     rd /s /q "!SRC!"
-    echo ✅ Всі дані Opera видалені!
+    echo ✅ Всі дані Opera видалені з резервною копією!
 ) else (
     echo ❌ Дані Opera не знайдено.
 )
 
 endlocal
+pause
+goto browser_opera
+
+:opera_full_delete_nobackup
+taskkill /IM opera.exe /F >nul 2>&1
+timeout /t 2 /nobreak >nul
+
+set "SRC=%APPDATA%\Opera Software"
+
+if exist "%SRC%" (
+    rd /s /q "%SRC%"
+    echo ✅ Всі дані Opera видалені без резервної копії!
+) else (
+    echo ❌ Дані Opera не знайдено.
+)
+
 pause
 goto browser_opera
 
